@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shipping Orders Manager</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+        body {
+            box-sizing: border-box;
+        }
+        .status-pending { background-color: #fff3cd; color: #856404; }
+        .status-processing { background-color: #cce5ff; color: #004085; }
+        .status-shipped { background-color: #d4edda; color: #155724; }
+        .status-delivered { background-color: #d1ecf1; color: #0c5460; }
+        .priority-express { border-left: 5px solid #000000; }
+        .priority-standard { border-left: 5px solid #ffcc00; }
+        .priority-economy { border-left: 5px solid #666666; }
+        .dhl-red { color: #000000; }
+        .dhl-yellow { background-color: #ffcc00; }
+        .dhl-bg { background-color: #000000; }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="min-h-full bg-gray-50">
+  <div class="min-h-full"><!-- Header -->
+   <header class="dhl-bg shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+     <div class="flex justify-between items-center py-6">
+      <div class="flex items-center space-x-4">
+       <div class="bg-white px-2 py-2 rounded shadow-lg"><img src="https://img1.wsimg.com/isteam/ip/68a287ad-de0d-4f97-9a41-b8ad07961366/Subtitle%20(6).jpg/:/rs=h:175,m" alt="Company Logo" class="h-12" onerror="this.style.display='none'; this.alt='Logo failed to load';">
+       </div>
+       <div class="border-l-2 border-yellow-300 pl-4">
+        <h1 id="system-title" class="text-2xl font-bold text-white">Logistics Management System</h1>
+        <p id="company-name" class="text-sm text-white mt-1">LesLogistic Express</p>
+       </div>
+      </div>
+      <div class="flex items-center space-x-6">
+       <div class="text-right bg-white bg-opacity-10 px-4 py-2 rounded">
+        <div class="text-xs text-white font-semibold">
+         TOTAL SHIPMENTS
+        </div>
+        <div id="total-orders" class="text-3xl font-bold text-white">
+         0
+        </div>
+       </div>
+       <div class="text-right bg-white bg-opacity-10 px-4 py-2 rounded">
+        <div class="text-xs text-white font-semibold">
+         PENDING
+        </div>
+        <div id="pending-count" class="text-3xl font-bold text-white">
+         0
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </header>
+   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><!-- Add New Order Form -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-8 border-t-4 border-black">
+     <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold dhl-red">Create New Shipment</h2><span class="text-sm text-gray-500 font-semibold">SHIPPING ORDER FORM</span>
+     </div>
+     <form id="order-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div><label for="order-id" class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Waybill Number</label> <input type="text" id="order-id" name="order_id" required placeholder="e.g., LL123456789" class="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-semibold">
+      </div>
+      <div><label for="customer-name" class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Consignee Name</label> <input type="text" id="customer-name" name="customer_name" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+      <div><label for="shipping-address" class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Destination Address</label> <input type="text" id="shipping-address" name="shipping_address" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+      <div><label for="items" class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Shipment Contents</label> <input type="text" id="items" name="items" required placeholder="e.g., Documents x5, Package x2" class="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+      <div><label for="carrier" class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Service Provider</label> <input type="text" id="carrier" name="carrier" required value="LesLogistic Express" class="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-semibold">
+      </div>
+      <div><label for="priority" class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Service Level</label> <select id="priority" name="priority" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-semibold"> <option value="">Select Service Level</option> <option value="express">Express Delivery</option> <option value="standard">Standard Shipping</option> <option value="economy">Economy Service</option> </select>
+      </div>
+      <div class="md:col-span-2 lg:col-span-3 flex items-center justify-between pt-4 border-t-2 border-gray-200">
+       <p class="text-xs text-gray-500">All fields are mandatory. Please ensure accuracy of shipment details.</p><button type="submit" id="add-order-btn" class="dhl-bg hover:bg-gray-900 text-white px-8 py-3 rounded-md font-bold uppercase tracking-wide transition-all duration-200 shadow-lg hover:shadow-xl"> Create Shipment </button>
+      </div>
+     </form>
+    </div><!-- Orders List -->
+    <div class="bg-white rounded-lg shadow-lg border-t-4 border-yellow-400">
+     <div class="px-8 py-5 border-b-2 border-gray-200 bg-gray-50">
+      <div class="flex items-center justify-between">
+       <h2 class="text-2xl font-bold dhl-red">Active Shipments</h2><span class="text-sm font-semibold text-gray-600">OPERATIONS DASHBOARD</span>
+      </div>
+     </div>
+     <div id="orders-container" class="divide-y-2 divide-gray-100">
+      <div id="empty-state" class="px-8 py-16 text-center text-gray-500">
+       <div class="text-7xl mb-4">
+        📦
+       </div>
+       <p class="text-xl font-semibold text-gray-700 mb-2">No Active Shipments</p>
+       <p class="text-sm text-gray-500">Create your first shipment using the form above to begin tracking</p>
+      </div>
+     </div>
+    </div>
+   </main><!-- Footer -->
+   <footer class="bg-gray-900 border-t-4 border-yellow-400 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+     <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+       <div class="bg-white px-2 py-1 rounded"><img src="https://img1.wsimg.com/isteam/ip/68a287ad-de0d-4f97-9a41-b8ad07961366/Subtitle%20(6).jpg/:/rs=h:175,m" alt="Company Logo" class="h-8" onerror="this.style.display='none'; this.alt='Logo failed to load';">
+       </div>
+       <p id="footer-text" class="text-sm text-gray-400">© 2018 LesLogistic.com. 
+        Your Trusted Logistics Partner.</p>
+      </div>
+      <p class="text-xs text-gray-500 font-semibold">LOGISTICS MANAGEMENT SYSTEM v2.0</p>
+     </div>
+    </div>
+   </footer>
+  </div>
+  <script>
+        let orders = [];
+        let recordCount = 0;
+
+        // Default configuration
+        const defaultConfig = {
+            system_title: "Logistics Management System",
+            company_name: "LesLogistic Express",
+            footer_text: "© 2024 LesLogistic.com. Your Trusted Logistics Partner."
+        };
+
+        // Data SDK handler
+        const dataHandler = {
+            onDataChanged(data) {
+                orders = data;
+                recordCount = data.length;
+                updateOrdersDisplay();
+                updateStats();
+            }
+        };
+
+        // Element SDK configuration
+        async function onConfigChange(config) {
+            const systemTitle = config.system_title || defaultConfig.system_title;
+            const companyName = config.company_name || defaultConfig.company_name;
+            const footerText = config.footer_text || defaultConfig.footer_text;
+
+            document.getElementById('system-title').textContent = systemTitle;
+            document.getElementById('company-name').textContent = companyName;
+            document.getElementById('footer-text').textContent = footerText;
+        }
+
+        function mapToCapabilities(config) {
+            return {
+                recolorables: [],
+                borderables: [],
+                fontEditable: undefined,
+                fontSizeable: undefined
+            };
+        }
+
+        function mapToEditPanelValues(config) {
+            return new Map([
+                ["system_title", config.system_title || defaultConfig.system_title],
+                ["company_name", config.company_name || defaultConfig.company_name],
+                ["footer_text", config.footer_text || defaultConfig.footer_text]
+            ]);
+        }
+
+        // Initialize SDKs
+        async function initializeApp() {
+            try {
+                // Initialize Element SDK
+                if (window.elementSdk) {
+                    await window.elementSdk.init({
+                        defaultConfig,
+                        onConfigChange,
+                        mapToCapabilities,
+                        mapToEditPanelValues
+                    });
+                }
+
+                // Initialize Data SDK
+                const initResult = await window.dataSdk.init(dataHandler);
+                if (!initResult.isOk) {
+                    console.error("Failed to initialize data SDK");
+                    showMessage("Failed to initialize data storage", "error");
+                }
+            } catch (error) {
+                console.error("Initialization error:", error);
+            }
+        }
+
+        // Add new order
+        async function addOrder(orderData) {
+            if (recordCount >= 999) {
+                showMessage("Maximum limit of 999 shipments reached. Please remove some shipments first.", "error");
+                return;
+            }
+
+            const addButton = document.getElementById('add-order-btn');
+            addButton.disabled = true;
+            addButton.textContent = 'CREATING SHIPMENT...';
+
+            try {
+                const result = await window.dataSdk.create({
+                    ...orderData,
+                    status: 'pending',
+                    tracking_number: '',
+                    ship_date: '',
+                    created_at: new Date().toISOString()
+                });
+
+                if (result.isOk) {
+                    document.getElementById('order-form').reset();
+                    showMessage("Shipment created successfully!", "success");
+                    // Show QR code popup with the newly created order data
+                    showQRCodePopup(orderData);
+                } else {
+                    showMessage("Failed to create shipment. Please try again.", "error");
+                }
+            } catch (error) {
+                showMessage("An error occurred while adding the order.", "error");
+            } finally {
+                addButton.disabled = false;
+                addButton.textContent = 'CREATE SHIPMENT';
+            }
+        }
+
+        // Update order status
+        async function updateOrderStatus(order, newStatus, trackingNumber = '') {
+            const updatedOrder = {
+                ...order,
+                status: newStatus,
+                tracking_number: trackingNumber,
+                ship_date: newStatus === 'shipped' ? new Date().toISOString() : order.ship_date
+            };
+
+            try {
+                const result = await window.dataSdk.update(updatedOrder);
+                if (result.isOk) {
+                    showMessage(`Shipment ${order.order_id} updated to ${newStatus.toUpperCase()}`, "success");
+                } else {
+                    showMessage("Failed to update shipment status", "error");
+                }
+            } catch (error) {
+                showMessage("An error occurred while updating the order", "error");
+            }
+        }
+
+        // Delete order
+        async function deleteOrder(order) {
+            try {
+                const result = await window.dataSdk.delete(order);
+                if (result.isOk) {
+                    showMessage(`Shipment ${order.order_id} removed successfully`, "success");
+                } else {
+                    showMessage("Failed to remove shipment", "error");
+                }
+            } catch (error) {
+                showMessage("An error occurred while deleting the order", "error");
+            }
+        }
+
+        // Update orders display
+        function updateOrdersDisplay() {
+            const container = document.getElementById('orders-container');
+            const emptyState = document.getElementById('empty-state');
+
+            if (orders.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            // Sort orders by created date (newest first)
+            const sortedOrders = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            const ordersHTML = sortedOrders.map(order => {
+                const priorityLabels = {
+                    express: 'EXPRESS',
+                    standard: 'STANDARD',
+                    economy: 'ECONOMY'
+                };
+                const priorityColors = {
+                    express: 'bg-black text-white border-black',
+                    standard: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+                    economy: 'bg-gray-100 text-gray-800 border-gray-300'
+                };
+                return `
+                <div class="px-8 py-6 priority-${order.priority} hover:bg-gray-50 transition-colors duration-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-4 mb-3">
+                                <h3 class="text-xl font-bold dhl-red font-mono">${order.order_id}</h3>
+                                <span class="px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide status-${order.status} border-2">
+                                    ${order.status.toUpperCase()}
+                                </span>
+                                <span class="px-3 py-1 rounded text-xs font-bold uppercase tracking-wider border-2 ${priorityColors[order.priority]}">
+                                    ${priorityLabels[order.priority] || order.priority.toUpperCase()}
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                    <span class="font-bold text-gray-500 uppercase text-xs tracking-wide">Consignee:</span>
+                                    <p class="text-gray-900 font-semibold">${order.customer_name}</p>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-gray-500 uppercase text-xs tracking-wide">Contents:</span>
+                                    <p class="text-gray-900 font-semibold">${order.items}</p>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-gray-500 uppercase text-xs tracking-wide">Service:</span>
+                                    <p class="text-gray-900 font-semibold">${order.carrier}</p>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-gray-500 uppercase text-xs tracking-wide">Destination:</span>
+                                    <p class="text-gray-900 font-semibold">${order.shipping_address}</p>
+                                </div>
+                            </div>
+                            ${order.tracking_number ? `
+                                <div class="mt-3 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+                                    <span class="font-bold text-gray-700 uppercase text-xs tracking-wide">Tracking Number:</span> 
+                                    <span class="font-mono text-blue-700 font-bold text-base ml-2">${order.tracking_number}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="flex items-center space-x-2 ml-6">
+                            ${order.status === 'pending' ? `
+                                <button onclick="promptForTracking('${order.__backendId}')" 
+                                        class="dhl-bg hover:bg-gray-900 text-white px-4 py-2 rounded font-bold text-sm uppercase tracking-wide transition-all duration-200 shadow hover:shadow-lg">
+                                    Dispatch
+                                </button>
+                            ` : ''}
+                            ${order.status === 'shipped' ? `
+                                <button onclick="updateOrderStatus(orders.find(o => o.__backendId === '${order.__backendId}'), 'delivered')" 
+                                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold text-sm uppercase tracking-wide transition-all duration-200 shadow hover:shadow-lg">
+                                    Delivered
+                                </button>
+                            ` : ''}
+                            <button onclick="confirmDelete('${order.__backendId}')" 
+                                    class="bg-gray-600 hover:bg-gray-800 text-white px-4 py-2 rounded font-bold text-sm uppercase tracking-wide transition-all duration-200 shadow hover:shadow-lg">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+
+            container.innerHTML = emptyState.outerHTML + ordersHTML;
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('total-orders').textContent = orders.length;
+            document.getElementById('pending-count').textContent = orders.filter(o => o.status === 'pending').length;
+        }
+
+        // Prompt for tracking number
+        function promptForTracking(orderId) {
+            const order = orders.find(o => o.__backendId === orderId);
+            if (!order) return;
+
+            const trackingContainer = document.createElement('div');
+            trackingContainer.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            trackingContainer.innerHTML = `
+                <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl border-t-4 border-black">
+                    <h3 class="text-xl font-bold dhl-red mb-2 uppercase tracking-wide">Dispatch Shipment</h3>
+                    <p class="text-sm text-gray-600 mb-6">Enter tracking number to mark shipment as dispatched</p>
+                    <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Tracking Number</label>
+                    <input type="text" id="tracking-input" placeholder="e.g., 1234567890" 
+                           class="w-full px-4 py-3 border-2 border-gray-300 rounded-md mb-6 focus:outline-none focus:ring-2 focus:ring-black focus:border-black font-mono font-semibold">
+                    <div class="flex space-x-3">
+                        <button onclick="submitTracking('${orderId}')" 
+                                class="dhl-bg hover:bg-gray-900 text-white px-6 py-3 rounded flex-1 font-bold uppercase tracking-wide transition-all duration-200 shadow-lg hover:shadow-xl">
+                            Dispatch
+                        </button>
+                        <button onclick="closeTrackingModal()" 
+                                class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-3 rounded flex-1 font-bold uppercase tracking-wide transition-all duration-200">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(trackingContainer);
+            document.getElementById('tracking-input').focus();
+        }
+
+        // Submit tracking number
+        function submitTracking(orderId) {
+            const trackingNumber = document.getElementById('tracking-input').value.trim();
+            if (!trackingNumber) {
+                showMessage("Please enter a tracking number", "error");
+                return;
+            }
+
+            const order = orders.find(o => o.__backendId === orderId);
+            if (order) {
+                updateOrderStatus(order, 'shipped', trackingNumber);
+            }
+            closeTrackingModal();
+        }
+
+        // Close tracking modal
+        function closeTrackingModal() {
+            const modal = document.querySelector('.fixed.inset-0');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Confirm delete
+        function confirmDelete(orderId) {
+            const order = orders.find(o => o.__backendId === orderId);
+            if (!order) return;
+
+            const confirmContainer = document.createElement('div');
+            confirmContainer.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            confirmContainer.innerHTML = `
+                <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl border-t-4 border-yellow-400">
+                    <div class="text-center mb-4">
+                        <div class="text-5xl mb-3">⚠️</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2 uppercase tracking-wide">Confirm Removal</h3>
+                    </div>
+                    <p class="text-gray-600 mb-6 text-center">Are you sure you want to remove shipment <span class="font-bold dhl-red">${order.order_id}</span>? This action cannot be undone.</p>
+                    <div class="flex space-x-3">
+                        <button onclick="executeDelete('${orderId}')" 
+                                class="bg-black hover:bg-gray-900 text-white px-6 py-3 rounded flex-1 font-bold uppercase tracking-wide transition-all duration-200 shadow-lg hover:shadow-xl">
+                            Remove
+                        </button>
+                        <button onclick="closeConfirmModal()" 
+                                class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-3 rounded flex-1 font-bold uppercase tracking-wide transition-all duration-200">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(confirmContainer);
+        }
+
+        // Execute delete
+        function executeDelete(orderId) {
+            const order = orders.find(o => o.__backendId === orderId);
+            if (order) {
+                deleteOrder(order);
+            }
+            closeConfirmModal();
+        }
+
+        // Close confirm modal
+        function closeConfirmModal() {
+            const modal = document.querySelector('.fixed.inset-0');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Show QR code popup
+        async function showQRCodePopup(orderData) {
+            const qrContainer = document.createElement('div');
+            qrContainer.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            qrContainer.id = 'qr-modal';
+            
+            // Create order details string for QR code
+            const orderDetails = `Order ID: ${orderData.order_id}\nCustomer: ${orderData.customer_name}\nAddress: ${orderData.shipping_address}\nItems: ${orderData.items}\nCarrier: ${orderData.carrier}\nPriority: ${orderData.priority.toUpperCase()}`;
+            
+            const priorityLabels = {
+                express: 'EXPRESS DELIVERY',
+                standard: 'STANDARD SHIPPING',
+                economy: 'ECONOMY SERVICE'
+            };
+            
+            qrContainer.innerHTML = `
+                <div class="bg-white rounded-lg p-8 max-w-3xl w-full mx-4 max-h-[90%] overflow-y-auto shadow-2xl">
+                    <div id="print-area">
+                        <div class="border-8 border-black p-6 bg-white">
+                            <div class="dhl-bg flex items-center justify-between p-4 mb-6">
+                                <div class="flex items-center space-x-3">
+                                    <div class="bg-white px-2 py-2 rounded">
+                                        <img src="https://img1.wsimg.com/isteam/ip/68a287ad-de0d-4f97-9a41-b8ad07961366/Subtitle%20(6).jpg/:/rs=h:175,m" alt="Company Logo" class="h-10" onerror="this.style.display='none'; this.alt='Logo failed to load';">
+                                    </div>
+                                    <div class="border-l-2 border-yellow-300 pl-3">
+                                        <p class="text-white font-bold text-lg">Express Logistics</p>
+                                        <p class="text-white text-xs font-semibold">Your Trusted Logistics Partner</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-white text-xs font-bold uppercase tracking-wider">Shipment Label</p>
+                                    <p class="text-white text-xs">${new Date().toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-center mb-6 p-4 bg-gray-50 rounded border-2 border-gray-200">
+                                <canvas id="qr-canvas"></canvas>
+                            </div>
+                            
+                            <div class="bg-yellow-50 border-t-4 border-b-4 border-yellow-400 py-4 mb-6">
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <p class="font-bold text-gray-500 uppercase text-xs tracking-wider mb-1">Waybill Number</p>
+                                        <p class="text-gray-900 font-bold text-xl font-mono dhl-red">${orderData.order_id}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-gray-500 uppercase text-xs tracking-wider mb-1">Service Level</p>
+                                        <p class="text-gray-900 font-bold">${priorityLabels[orderData.priority] || orderData.priority.toUpperCase()}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-gray-500 uppercase text-xs tracking-wider mb-1">Consignee</p>
+                                        <p class="text-gray-900 font-semibold">${orderData.customer_name}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-gray-500 uppercase text-xs tracking-wider mb-1">Service Provider</p>
+                                        <p class="text-gray-900 font-semibold">${orderData.carrier}</p>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <p class="font-bold text-gray-500 uppercase text-xs tracking-wider mb-1">Destination Address</p>
+                                        <p class="text-gray-900 font-semibold text-base">${orderData.shipping_address}</p>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <p class="font-bold text-gray-500 uppercase text-xs tracking-wider mb-1">Shipment Contents</p>
+                                        <p class="text-gray-900 font-semibold">${orderData.items}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center text-xs text-gray-500 border-t-2 border-gray-200 pt-4">
+                                <p class="font-bold">Created: ${new Date().toLocaleString()}</p>
+                                <p class="mt-2 text-gray-400">This is an official LesLogistic.com shipping label. Handle with care.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-3 mt-6 no-print">
+                        <button onclick="printQRCode()" 
+                                class="dhl-bg hover:bg-gray-900 text-white px-8 py-3 rounded flex-1 font-bold uppercase tracking-wide transition-all duration-200 shadow-lg hover:shadow-xl">
+                            Print Label
+                        </button>
+                        <button onclick="closeQRModal()" 
+                                class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-8 py-3 rounded flex-1 font-bold uppercase tracking-wide transition-all duration-200">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(qrContainer);
+            
+            // Generate QR code
+            try {
+                const canvas = document.getElementById('qr-canvas');
+                await QRCode.toCanvas(canvas, orderDetails, {
+                    width: 300,
+                    margin: 2,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                });
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                showMessage('Failed to generate QR code', 'error');
+            }
+        }
+
+        // Print QR code
+        function printQRCode() {
+            window.print();
+        }
+
+        // Close QR modal
+        function closeQRModal() {
+            const modal = document.getElementById('qr-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Show message
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `fixed top-4 right-4 px-4 py-2 rounded-md text-white z-50 ${
+                type === 'success' ? 'bg-green-600' : 'bg-red-600'
+            }`;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // Form submission
+        document.getElementById('order-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const orderData = Object.fromEntries(formData.entries());
+            addOrder(orderData);
+        });
+
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a4dc49837545cc3',t:'MTc2NDIwNjA1OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
