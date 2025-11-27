@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Access Management System</title>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #10b981;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+    
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .toast.error {
+      background: #ef4444;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="w-full h-full min-h-full m-0 p-0">
+  <div id="app" class="w-full min-h-full" style="background: #000000;"><!-- Login Screen -->
+   <div id="login-screen" class="w-full min-h-full flex items-center justify-center px-6 py-12" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="bg-white rounded-3xl shadow-2xl p-10 w-full max-w-md border border-gray-100">
+     <div class="text-center mb-10">
+      <div class="w-32 h-32 mx-auto mb-6"><img src="https://img1.wsimg.com/isteam/ip/68a287ad-de0d-4f97-9a41-b8ad07961366/Subtitle%20(6).jpg/:/rs=h:175,m" alt="Company Logo" class="w-full h-full object-contain" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl flex items-center justify-center text-white mx-auto shadow-xl\'><svg class=\'w-10 h-10\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z\'></path></svg></div>';">
+      </div>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2 tracking-tight">Access Management</h1>
+      <p class="text-gray-500 text-sm font-medium">Secure Portal • Sign in to continue</p>
+     </div>
+     <form id="login-form">
+      <div class="mb-5"><label for="login-username" class="block text-sm font-semibold text-gray-700 mb-2">Username</label> <input type="text" id="login-username" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-gray-900 font-medium">
+      </div>
+      <div class="mb-6"><label for="login-password" class="block text-sm font-semibold text-gray-700 mb-2">Password</label> <input type="password" id="login-password" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-gray-900 font-medium">
+      </div>
+      <div id="login-error" class="hidden mb-5 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-700 text-sm font-medium">
+       <div class="flex items-center">
+        <svg class="w-5 h-5 mr-2" fill="currentColor" viewbox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+        </svg> Invalid username or password
+       </div>
+      </div><button type="submit" id="login-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"> Sign In </button>
+     </form>
+     <div class="mt-6 text-center">
+      <p class="text-xs text-gray-400">Secure access • Protected by encryption</p>
+     </div>
+    </div>
+   </div><!-- Main App (hidden until logged in) -->
+   <div id="main-app" class="hidden w-full min-h-full" style="background: #000000;">
+    <div class="w-full max-w-7xl mx-auto px-6 py-10">
+     <div class="bg-white rounded-3xl shadow-2xl p-10 border border-gray-100">
+      <div class="flex justify-between items-start mb-10 pb-8 border-b border-gray-200">
+       <div>
+        <div class="mb-3">
+         <h1 id="page-title" class="text-4xl font-bold text-gray-900 tracking-tight">Access Management</h1>
+        </div>
+        <p class="text-gray-500 font-medium">Grant and manage user permissions across your organization</p>
+       </div>
+       <div class="flex gap-3"><button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+         </svg> Log Out </button> <button id="reset-login-btn" class="bg-gray-700 hover:bg-gray-800 text-white font-bold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+         </svg> Reset Login </button> <button id="add-user-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+         </svg> Add User </button>
+       </div>
+      </div><!-- Reset Login Modal -->
+      <div id="reset-login-modal" class="hidden bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-8 mb-8 border-2 border-yellow-200 shadow-lg">
+       <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-yellow-400 rounded-lg flex items-center justify-center">
+         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+         </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900">Reset Login Details</h3>
+       </div>
+       <form id="reset-form" class="space-y-5">
+        <div><label for="new-username" class="block text-sm font-semibold text-gray-700 mb-2">New Username</label> <input type="text" id="new-username" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all bg-white">
+        </div>
+        <div><label for="new-password" class="block text-sm font-semibold text-gray-700 mb-2">New Password</label> <input type="password" id="new-password" required minlength="6" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all bg-white">
+        </div>
+        <div><label for="confirm-password" class="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label> <input type="password" id="confirm-password" required minlength="6" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all bg-white">
+        </div>
+        <div class="flex gap-3 justify-end pt-4"><button type="button" id="cancel-reset-btn" class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"> Cancel </button> <button type="submit" class="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all"> Update Login </button>
+        </div>
+       </form>
+      </div>
+      <div id="add-form" class="hidden bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-8 mb-8 border-2 border-indigo-200 shadow-lg">
+       <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
+         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+         </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900">Grant New Access</h3>
+       </div>
+       <form id="user-form" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div><label for="user-name" class="block text-sm font-semibold text-gray-700 mb-2">Full Name</label> <input type="text" id="user-name" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white">
+        </div>
+        <div><label for="user-email" class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label> <input type="email" id="user-email" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white">
+        </div>
+        <div><label for="user-role" class="block text-sm font-semibold text-gray-700 mb-2">Role</label> <select id="user-role" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white font-medium"> <option value="">Select a role</option> <option value="Management">Management</option> </select>
+        </div>
+        <div><label for="user-status" class="block text-sm font-semibold text-gray-700 mb-2">Status</label> <select id="user-status" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white font-medium"> <option value="Active">Active</option> <option value="Pending">Pending</option> </select>
+        </div>
+        <div class="md:col-span-2 bg-white p-5 rounded-xl border-2 border-gray-200"><label class="block text-sm font-semibold text-gray-700 mb-4" id="permissions-label">Permissions</label>
+         <div class="flex flex-wrap gap-4"><label class="flex items-center gap-3 cursor-pointer bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-all"> <input type="checkbox" id="perm-inventory" class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"> <span class="text-sm font-medium text-gray-700">Inventory</span> </label> <label class="flex items-center gap-3 cursor-pointer bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-all"> <input type="checkbox" id="perm-receiving" class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"> <span class="text-sm font-medium text-gray-700">Receiving</span> </label> <label class="flex items-center gap-3 cursor-pointer bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-all"> <input type="checkbox" id="perm-picking" class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"> <span class="text-sm font-medium text-gray-700">Picking</span> </label> <label class="flex items-center gap-3 cursor-pointer bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-all"> <input type="checkbox" id="perm-shipping" class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"> <span class="text-sm font-medium text-gray-700">Shipping</span> </label> <label class="flex items-center gap-3 cursor-pointer bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-all"> <input type="checkbox" id="perm-locations" class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"> <span class="text-sm font-medium text-gray-700">Locations</span> </label> <label class="flex items-center gap-3 cursor-pointer bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-all"> <input type="checkbox" id="perm-reports" class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"> <span class="text-sm font-medium text-gray-700">Reports</span> </label> <label class="flex items-center gap-3 cursor-pointer bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-all"> <input type="checkbox" id="perm-cycle-counts" class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"> <span class="text-sm font-medium text-gray-700">Cycle Counts</span> </label> <label class="flex items-center gap-3 cursor-pointer bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-all"> <input type="checkbox" id="perm-manage-bookers" class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"> <span class="text-sm font-medium text-gray-700">Manage Bookers</span> </label>
+         </div>
+        </div>
+        <div class="md:col-span-2 bg-white p-5 rounded-xl border-2 border-gray-200"><label class="block text-sm font-semibold text-gray-700 mb-3">Auto-Generated Password</label>
+         <div class="flex gap-3"><input type="text" id="generated-password" readonly class="flex-1 px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-mono text-sm font-semibold text-gray-700"> <button type="button" id="copy-password-btn" class="px-5 py-3 bg-gray-700 hover:bg-gray-800 text-white font-semibold rounded-xl transition-all"> Copy </button> <button type="button" id="regenerate-password-btn" class="px-5 py-3 bg-gray-700 hover:bg-gray-800 text-white font-semibold rounded-xl transition-all"> Regenerate </button>
+         </div>
+        </div>
+        <div class="md:col-span-2 flex gap-3 justify-end pt-4"><button type="button" id="cancel-btn" class="px-8 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"> Cancel </button> <button type="submit" id="submit-btn" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all"> Grant Access </button>
+        </div>
+       </form>
+      </div>
+      <div id="users-container" class="space-y-5">
+       <div class="text-center py-20 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-300">
+        <div class="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+         <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+         </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-2">No Users Yet</h3>
+        <p class="text-gray-600 font-medium mb-6">Get started by adding your first user</p>
+        <p class="text-sm text-gray-500">Click the <span class="font-bold text-indigo-600">"Add User"</span> button above to grant access</p>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script>
+    const defaultConfig = {
+      page_title: 'Access Management',
+      add_button_text: '+ Add User',
+      permissions_label: 'Permissions',
+      background_color: '#000000',
+      surface_color: '#ffffff',
+      text_color: '#111827',
+      primary_action_color: '#4f46e5',
+      secondary_action_color: '#6b7280',
+      login_username: 'admin',
+      login_password: 'admin123'
+    };
+
+    let users = [];
+    let isFormVisible = false;
+    let isResetModalVisible = false;
+    let currentPassword = '';
+    let isLoggedIn = false;
+
+    function generatePassword() {
+      const length = 12;
+      const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+      const numbers = '0123456789';
+      const symbols = '!@#$%^&*';
+      const allChars = uppercase + lowercase + numbers + symbols;
+      
+      let password = '';
+      password += uppercase[Math.floor(Math.random() * uppercase.length)];
+      password += lowercase[Math.floor(Math.random() * lowercase.length)];
+      password += numbers[Math.floor(Math.random() * numbers.length)];
+      password += symbols[Math.floor(Math.random() * symbols.length)];
+      
+      for (let i = password.length; i < length; i++) {
+        password += allChars[Math.floor(Math.random() * allChars.length)];
+      }
+      
+      return password.split('').sort(() => Math.random() - 0.5).join('');
+    }
+
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast show' + (isError ? ' error' : '');
+      setTimeout(() => {
+        toast.className = 'toast';
+      }, 3000);
+    }
+
+    function generateId() {
+      return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    }
+
+    function getRoleBadgeColor(role) {
+      const colors = {
+        'Basic': 'bg-gray-100 text-gray-800',
+        'Normal': 'bg-blue-100 text-blue-800',
+        'Premium': 'bg-purple-100 text-purple-800'
+      };
+      return colors[role] || 'bg-gray-100 text-gray-800';
+    }
+
+    function getStatusBadgeColor(status) {
+      const colors = {
+        'Active': 'bg-green-100 text-green-800',
+        'Pending': 'bg-yellow-100 text-yellow-800',
+        'Inactive': 'bg-red-100 text-red-800'
+      };
+      return colors[status] || 'bg-gray-100 text-gray-800';
+    }
+
+    function renderUsers() {
+      const container = document.getElementById('users-container');
+      
+      if (users.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-20 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-300">
+            <div class="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+              <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">No Users Yet</h3>
+            <p class="text-gray-600 font-medium mb-6">Get started by adding your first user</p>
+            <p class="text-sm text-gray-500">Click the <span class="font-bold text-indigo-600">"Add User"</span> button above to grant access</p>
+          </div>
+        `;
+        return;
+      }
+
+      const existingUsers = new Map(
+        [...container.querySelectorAll('[data-user-id]')].map(el => [el.dataset.userId, el])
+      );
+
+      const fragment = document.createDocumentFragment();
+      const newUserIds = new Set();
+
+      users.forEach(user => {
+        newUserIds.add(user.id);
+        
+        if (existingUsers.has(user.id)) {
+          const existingEl = existingUsers.get(user.id);
+          existingEl.querySelector('[data-name]').textContent = user.name;
+          existingEl.querySelector('[data-email]').textContent = user.email;
+          existingEl.querySelector('[data-password]').textContent = user.password;
+          existingEl.querySelector('[data-role]').className = `px-3 py-1 rounded-full text-xs font-semibold ${getRoleBadgeColor(user.role)}`;
+          existingEl.querySelector('[data-role]').textContent = user.role;
+          existingEl.querySelector('[data-status]').className = `px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeColor(user.status)}`;
+          existingEl.querySelector('[data-status]').textContent = user.status;
+          existingEl.querySelector('[data-date]').textContent = new Date(user.granted_date).toLocaleDateString();
+          
+          const permEl = existingEl.querySelector('[data-permissions]');
+          permEl.innerHTML = '';
+          if (user.inventory) permEl.innerHTML += '<span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">Inventory</span>';
+          if (user.receiving) permEl.innerHTML += '<span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">Receiving</span>';
+          if (user.picking) permEl.innerHTML += '<span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">Picking</span>';
+          if (user.shipping) permEl.innerHTML += '<span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">Shipping</span>';
+          if (user.locations) permEl.innerHTML += '<span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">Locations</span>';
+          if (user.reports) permEl.innerHTML += '<span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">Reports</span>';
+          if (user.cycle_counts) permEl.innerHTML += '<span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">Cycle Counts</span>';
+          if (user.manage_bookers) permEl.innerHTML += '<span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">Manage Bookers</span>';
+          if (!user.inventory && !user.receiving && !user.picking && !user.shipping && !user.locations && !user.reports && !user.cycle_counts && !user.manage_bookers) permEl.innerHTML = '<span class="text-xs text-gray-400">None</span>';
+          
+          existingUsers.delete(user.id);
+        } else {
+          const userEl = createUserElement(user);
+          fragment.appendChild(userEl);
+        }
+      });
+
+      existingUsers.forEach(el => el.remove());
+      
+      if (fragment.children.length > 0) {
+        container.appendChild(fragment);
+      }
+    }
+
+    function createUserElement(user) {
+      const div = document.createElement('div');
+      div.dataset.userId = user.id;
+      div.className = 'bg-white rounded-2xl p-7 border-2 border-gray-200 hover:border-indigo-300 hover:shadow-xl transition-all';
+      div.innerHTML = `
+        <div class="flex justify-between items-start">
+          <div class="flex-1">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                ${user.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h4 class="text-xl font-bold text-gray-900 mb-1" data-name>${user.name}</h4>
+                <p class="text-sm text-gray-600 font-medium" data-email>${user.email}</p>
+              </div>
+            </div>
+            <div class="flex gap-2 mt-4">
+              <span class="px-4 py-1.5 rounded-full text-sm font-bold ${getRoleBadgeColor(user.role)}" data-role>${user.role}</span>
+              <span class="px-4 py-1.5 rounded-full text-sm font-bold ${getStatusBadgeColor(user.status)}" data-status>${user.status}</span>
+            </div>
+            <div class="mt-5 bg-gray-50 p-4 rounded-xl">
+              <p class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">Permissions</p>
+              <div class="flex gap-2 flex-wrap" data-permissions>
+                ${user.inventory ? '<span class="px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-lg text-sm font-semibold">Inventory</span>' : ''}
+                ${user.receiving ? '<span class="px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-lg text-sm font-semibold">Receiving</span>' : ''}
+                ${user.picking ? '<span class="px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-lg text-sm font-semibold">Picking</span>' : ''}
+                ${user.shipping ? '<span class="px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-lg text-sm font-semibold">Shipping</span>' : ''}
+                ${user.locations ? '<span class="px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-lg text-sm font-semibold">Locations</span>' : ''}
+                ${user.reports ? '<span class="px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-lg text-sm font-semibold">Reports</span>' : ''}
+                ${user.cycle_counts ? '<span class="px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-lg text-sm font-semibold">Cycle Counts</span>' : ''}
+                ${user.manage_bookers ? '<span class="px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-lg text-sm font-semibold">Manage Bookers</span>' : ''}
+                ${!user.inventory && !user.receiving && !user.picking && !user.shipping && !user.locations && !user.reports && !user.cycle_counts && !user.manage_bookers ? '<span class="text-sm text-gray-400 font-medium">None assigned</span>' : ''}
+              </div>
+            </div>
+            <div class="mt-4 bg-gray-50 p-4 rounded-xl flex items-center gap-3">
+              <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Password:</p>
+              <code class="text-sm bg-white border-2 border-gray-200 px-3 py-1.5 rounded-lg font-mono font-bold text-gray-900" data-password>${user.password}</code>
+              <button class="copy-pwd-btn text-sm text-indigo-700 hover:text-indigo-900 font-bold underline">Copy</button>
+            </div>
+            <p class="text-xs text-gray-500 mt-4 font-medium">Granted on <span data-date class="font-semibold">${new Date(user.granted_date).toLocaleDateString()}</span></p>
+          </div>
+          <button class="revoke-btn text-red-600 hover:text-white hover:bg-red-600 border-2 border-red-600 px-6 py-3 rounded-xl transition-all font-bold shadow-md hover:shadow-lg">
+            Revoke Access
+          </button>
+        </div>
+      `;
+      
+      div.querySelector('.revoke-btn').addEventListener('click', () => revokeAccess(user));
+      div.querySelector('.copy-pwd-btn').addEventListener('click', () => {
+        navigator.clipboard.writeText(user.password);
+        showToast('Password copied to clipboard');
+      });
+      return div;
+    }
+
+    async function revokeAccess(user) {
+      const btn = event.target;
+      const originalText = btn.textContent;
+      btn.textContent = 'Revoking...';
+      btn.disabled = true;
+
+      const result = await window.dataSdk.delete(user);
+      
+      if (result.isOk) {
+        showToast('Access revoked successfully');
+      } else {
+        showToast('Failed to revoke access. Please try again.', true);
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    function toggleForm() {
+      isFormVisible = !isFormVisible;
+      const form = document.getElementById('add-form');
+      form.classList.toggle('hidden', !isFormVisible);
+      
+      if (isFormVisible) {
+        currentPassword = generatePassword();
+        document.getElementById('generated-password').value = currentPassword;
+        document.getElementById('user-name').focus();
+      }
+    }
+
+    function toggleResetModal() {
+      isResetModalVisible = !isResetModalVisible;
+      const modal = document.getElementById('reset-login-modal');
+      modal.classList.toggle('hidden', !isResetModalVisible);
+      
+      if (isResetModalVisible) {
+        document.getElementById('new-username').focus();
+      }
+    }
+
+    async function onConfigChange(config) {
+      const pageTitle = document.getElementById('page-title');
+      const addButton = document.getElementById('add-user-btn');
+      const permissionsLabel = document.getElementById('permissions-label');
+      const app = document.getElementById('app');
+
+      pageTitle.textContent = config.page_title || defaultConfig.page_title;
+      addButton.textContent = config.add_button_text || defaultConfig.add_button_text;
+      if (permissionsLabel) {
+        permissionsLabel.textContent = config.permissions_label || defaultConfig.permissions_label;
+      }
+      
+      const bgColor = config.background_color || defaultConfig.background_color;
+      app.style.background = bgColor;
+      
+      const surface = config.surface_color || defaultConfig.surface_color;
+      document.querySelectorAll('.bg-white').forEach(el => {
+        if (el.id !== 'app') {
+          el.style.backgroundColor = surface;
+        }
+      });
+      
+      const textColor = config.text_color || defaultConfig.text_color;
+      document.querySelectorAll('.text-gray-900').forEach(el => {
+        el.style.color = textColor;
+      });
+      
+      const primaryColor = config.primary_action_color || defaultConfig.primary_action_color;
+      const primaryHover = adjustColor(primaryColor, -10);
+      
+      const addBtn = document.getElementById('add-user-btn');
+      if (addBtn) {
+        addBtn.style.backgroundColor = primaryColor;
+        addBtn.onmouseenter = function() { this.style.backgroundColor = primaryHover; };
+        addBtn.onmouseleave = function() { this.style.backgroundColor = primaryColor; };
+      }
+      
+      const submitBtn = document.getElementById('submit-btn');
+      if (submitBtn) {
+        submitBtn.style.backgroundColor = primaryColor;
+        submitBtn.onmouseenter = function() { this.style.backgroundColor = primaryHover; };
+        submitBtn.onmouseleave = function() { this.style.backgroundColor = primaryColor; };
+      }
+
+      const loginBtn = document.getElementById('login-btn');
+      if (loginBtn) {
+        loginBtn.style.backgroundColor = primaryColor;
+        loginBtn.onmouseenter = function() { this.style.backgroundColor = primaryHover; };
+        loginBtn.onmouseleave = function() { this.style.backgroundColor = primaryColor; };
+      }
+    }
+
+    function adjustColor(color, amount) {
+      const num = parseInt(color.replace('#', ''), 16);
+      const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+      const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+      const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+      return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+    }
+
+    const dataHandler = {
+      onDataChanged(data) {
+        users = data;
+        if (isLoggedIn) {
+          renderUsers();
+        }
+      }
+    };
+
+    // Login form
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+      
+      const config = window.elementSdk ? window.elementSdk.config : defaultConfig;
+      const validUsername = config.login_username || defaultConfig.login_username;
+      const validPassword = config.login_password || defaultConfig.login_password;
+      
+      if (username === validUsername && password === validPassword) {
+        isLoggedIn = true;
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        document.getElementById('login-error').classList.add('hidden');
+        showToast('Welcome back!');
+      } else {
+        document.getElementById('login-error').classList.remove('hidden');
+      }
+    });
+
+    // Logout button
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      isLoggedIn = false;
+      document.getElementById('main-app').classList.add('hidden');
+      document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('login-form').reset();
+      document.getElementById('login-error').classList.add('hidden');
+      
+      // Hide any open forms
+      if (isFormVisible) {
+        toggleForm();
+      }
+      if (isResetModalVisible) {
+        toggleResetModal();
+      }
+      
+      showToast('Logged out successfully');
+    });
+
+    // Reset login details
+    document.getElementById('reset-login-btn').addEventListener('click', () => {
+      toggleResetModal();
+    });
+
+    document.getElementById('cancel-reset-btn').addEventListener('click', () => {
+      toggleResetModal();
+      document.getElementById('reset-form').reset();
+    });
+
+    document.getElementById('reset-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const newUsername = document.getElementById('new-username').value.trim();
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+      
+      if (newPassword !== confirmPassword) {
+        showToast('Passwords do not match!', true);
+        return;
+      }
+      
+      if (window.elementSdk) {
+        await window.elementSdk.setConfig({
+          login_username: newUsername,
+          login_password: newPassword
+        });
+      }
+      
+      showToast('Login details updated successfully!');
+      toggleResetModal();
+      document.getElementById('reset-form').reset();
+    });
+
+    document.getElementById('add-user-btn').addEventListener('click', () => {
+      if (users.length >= 999) {
+        showToast('Maximum limit of 999 users reached. Please revoke access for some users first.', true);
+        return;
+      }
+      toggleForm();
+    });
+
+    document.getElementById('cancel-btn').addEventListener('click', () => {
+      toggleForm();
+      document.getElementById('user-form').reset();
+    });
+
+    document.getElementById('copy-password-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(currentPassword);
+      showToast('Password copied to clipboard');
+    });
+
+    document.getElementById('regenerate-password-btn').addEventListener('click', () => {
+      currentPassword = generatePassword();
+      document.getElementById('generated-password').value = currentPassword;
+      showToast('New password generated');
+    });
+
+    document.getElementById('user-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      if (users.length >= 999) {
+        showToast('Maximum limit of 999 users reached. Please revoke access for some users first.', true);
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-btn');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Granting...';
+      submitBtn.disabled = true;
+
+      const newUser = {
+        id: generateId(),
+        name: document.getElementById('user-name').value.trim(),
+        email: document.getElementById('user-email').value.trim(),
+        password: currentPassword,
+        role: document.getElementById('user-role').value,
+        status: document.getElementById('user-status').value,
+        inventory: document.getElementById('perm-inventory').checked,
+        receiving: document.getElementById('perm-receiving').checked,
+        picking: document.getElementById('perm-picking').checked,
+        shipping: document.getElementById('perm-shipping').checked,
+        locations: document.getElementById('perm-locations').checked,
+        reports: document.getElementById('perm-reports').checked,
+        cycle_counts: document.getElementById('perm-cycle-counts').checked,
+        manage_bookers: document.getElementById('perm-manage-bookers').checked,
+        granted_date: new Date().toISOString()
+      };
+
+      const result = await window.dataSdk.create(newUser);
+      
+      if (result.isOk) {
+        showToast('Access granted successfully');
+        document.getElementById('user-form').reset();
+        toggleForm();
+      } else {
+        showToast('Failed to grant access. Please try again.', true);
+      }
+      
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
+    });
+
+    (async () => {
+      const initResult = await window.dataSdk.init(dataHandler);
+      if (!initResult.isOk) {
+        showToast('Failed to initialize. Please refresh the page.', true);
+      }
+
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              {
+                get: () => config.background_color || defaultConfig.background_color,
+                set: (value) => {
+                  config.background_color = value;
+                  window.elementSdk.setConfig({ background_color: value });
+                }
+              },
+              {
+                get: () => config.surface_color || defaultConfig.surface_color,
+                set: (value) => {
+                  config.surface_color = value;
+                  window.elementSdk.setConfig({ surface_color: value });
+                }
+              },
+              {
+                get: () => config.text_color || defaultConfig.text_color,
+                set: (value) => {
+                  config.text_color = value;
+                  window.elementSdk.setConfig({ text_color: value });
+                }
+              },
+              {
+                get: () => config.primary_action_color || defaultConfig.primary_action_color,
+                set: (value) => {
+                  config.primary_action_color = value;
+                  window.elementSdk.setConfig({ primary_action_color: value });
+                }
+              }
+            ],
+            borderables: [],
+            fontEditable: undefined,
+            fontSizeable: undefined
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ['page_title', config.page_title || defaultConfig.page_title],
+            ['add_button_text', config.add_button_text || defaultConfig.add_button_text],
+            ['permissions_label', config.permissions_label || defaultConfig.permissions_label]
+          ])
+        });
+      }
+    })();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a4e56b7316c5cc3',t:'MTc2NDIxMjA0My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
